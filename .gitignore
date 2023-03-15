@@ -11,6 +11,9 @@ node_modules/
 .data
 dist
 .env
+.yarn
+.pnp.*
+.next
 
 # caches
 .npm

@@ -1,3 +1,4 @@
+const next = require('next')
 const path = require("path");
 const express = require("express");
 const {
@@ -18,7 +19,10 @@ require("dotenv").config();
 const CLIENT_ID = process.env.CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.CLIENT_SECRET ?? "";
 
-const app = express();
+const dev = process.env.NODE_ENV !== "production";
+const app = next({ dev });
+const handle = app.getRequestHandler();
+const server = express();
 const port = 8080;
 const baseUrl = process.env.PRODUCTION_URL ?? `http://localhost:${port}`;
 
@@ -27,19 +31,20 @@ const main = async () => {
     filename: path.resolve("db", "index.db"),
     driver: sqlite3.Database,
   });
+  await app.prepare();
 
-  app.use(
+  server.use(
     express.raw({
       type: "application/json",
     })
   );
-  app.use(express.static("html"));
+  // server.use(express.static("html"));
 
-  app.get("/", (req, res) => {
-    return res.status(200).sendFile(path.resolve("index.html"));
+  server.get("/", (req, res) => {
+    return res.status(200).sendFile(path.resolve("public/index.html"));
   });
 
-  app.get("/register", async (req, res) => {
+  server.get("/register", async (req, res) => {
     console.log("incoming register request");
     const { code, scope } = req.query;
 
@@ -77,11 +82,11 @@ const main = async () => {
     return res.redirect(301, `/registered?regId=${uuid}&name=${userName}`);
   });
 
-  app.get("/registered", (req, res) => {
+  server.get("/registered", (req, res) => {
     return res.status(200).sendFile(path.resolve("html", "registered.html"));
   });
 
-  app.get("/unregister", async (req, res) => {
+  server.get("/unregister", async (req, res) => {
     console.log("incoming unregister request");
     const { registered_id: registeredId } = req.query;
 
@@ -127,7 +132,7 @@ const main = async () => {
     return res.status(200).sendFile(path.resolve("html", "unregistered.html"));
   });
 
-  app.get("/unregisterWithLogin", async (req, res) => {
+  server.get("/unregisterWithLogin", async (req, res) => {
     console.log("incoming unregisterWithLogin request");
     const { code } = req.query;
 
@@ -183,7 +188,7 @@ const main = async () => {
     return res.status(200).sendFile(path.resolve("html", "unregistered.html"));
   });
 
-  app.get("/status", async (req, res) => {
+  server.get("/status", async (req, res) => {
     console.log("incoming check status request");
     const { registered_id: registeredId } = req.query;
     const token = await db.get(
@@ -204,7 +209,11 @@ const main = async () => {
       );
   });
 
-  app.listen(port, () => {
+  server.all("*", (req, res) => {
+    return handle(req, res);
+  });
+
+  server.listen(port, () => {
     console.log(`listening at http://localhost:${port}`);
   });
 
