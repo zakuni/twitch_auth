@@ -14,6 +14,6 @@ $ yarn install
 
 ### Start Server
 ```sh
-$ yarn run start
+$ yarn run dev
 ```
 and open http://localhost:8080
